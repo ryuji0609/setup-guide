@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Threads Sorter 初期設定マニュアル</title>
+    <style>
+        :root {
+            --primary: #38bdf8;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent-green: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-sub);
+            margin-bottom: 40px;
+            font-size: 1rem;
+        }
+
+        .step-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .step-number {
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(56, 189, 248, 0.4);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.4rem;
+            color: #f8fafc;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-top: 25px;
+        }
+
+        p,
+        li {
+            font-size: 1rem;
+            color: #cbd5e1;
+        }
+
+        ul,
+        ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 15px 0;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+        }
+
+        .image-placeholder {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-sub);
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        .important-box {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .important-box strong {
+            color: #ef4444;
+        }
+
+        .code-block {
+            background: #0f172a;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            color: #10b981;
+            word-break: break-all;
+            margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🚀 導入マニュアル</h1>
+        <div class="subtitle">AI Threads Sorterをあなたの環境で動かすための3ステップ</div>
+
+        <p style="text-align: center; margin-bottom: 40px; font-size: 1.1rem;">
+            このツールは、<strong>「あなた専用のGoogleスプレッドシート」</strong>と連携して動きます。<br>
+            セキュリティを守りながら自動投稿を行うために、最初の1回だけ以下の設定をお願いします！
+        </p>
+
+        <!-- STEP 1 -->
+        <div class="step-card">
+            <div class="step-number">1</div>
+            <h2>専用スプレッドシートをコピーする</h2>
+            <p>まずは、ポストを保存・管理するための「あなた専用のデータベース（スプレッドシート）」を作成します。</p>
+
+            <ol>
+                <li>以下のボタンをクリックして、テンプレートを開きます。</li>
+                <a href="【※ここにあなたが作ったテンプレートのURLを入れます※】" target="_blank" class="btn">📊 テンプレートを開く</a>
+
+                <li>左上のメニューから <strong>「ファイル」 ＞ 「コピーを作成」</strong> をクリックします。</li>
+                <div class="image-placeholder">[ここに「ファイル＞コピーを作成」のスクショ画像を入れると親切です]</div>
+
+                <li>名前を「設定用：AI Threads Sorter」など分かりやすいものにして、<strong>「コピーを作成」</strong>ボタンを押します。</li>
+                <li>これで、あなたのGoogleドライブに専用のシステムが保存されました。</li>
+            </ol>
+            <p style="color: var(--accent-green);">✓ ここまでできたら、新しく開いた「コピーされた方の画面」でStep 2に進みます。</p>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step-card">
+            <div class="step-number">2</div>
+            <h2>システム（GAS）を起動してURLを発行する</h2>
+            <p>次に、ツール（画面）とスプレッドシートを繋げるための「専用URL」を発行します。プログラミングの知識は一切不要です！</p>
+
+            <ol>
+                <li>コピーしたスプレッドシートの上のメニューから <strong>「拡張機能」 ＞ 「Apps Script」</strong> をクリックします。</li>
+                <li>新しい画面（プログラムの画面）が開いたら、右上の青い <strong>「デプロイ」</strong> ボタンを押し、<strong>「新しいデプロイ」</strong> を選びます。</li>
+                <div class="image-placeholder">[ここに「デプロイ＞新しいデプロイ」のスクショ画像を入れると親切です]</div>
+
+                <li>設定画面が出たら、以下の通りに設定してください：
+                    <ul>
+                        <li>種類の選択（左の歯車マーク）: <strong>ウェブアプリ</strong></li>
+                        <li>説明: （空欄でOKです）</li>
+                        <li>次のユーザーとして実行: <strong>自分（あなたのメールアドレス）</strong></li>
+                        <li>アクセスできるユーザー: <strong>全員</strong> ←ここが一番重要です！</li>
+                    </ul>
+                </li>
+                <li>設定できたら右下の <strong>「デプロイ」</strong> をクリックします。</li>
+            </ol>
+
+            <div class="important-box">
+                <strong>⚠️「アクセスを承認」と出た場合</strong><br>
+                Googleのセキュリティ警告です。以下の手順で許可してください：<br>
+                「アクセスを承認」をクリック ＞ 自分のGoogleアカウントを選択 ＞ 左下の「詳細」をクリック ＞ 一番下の「（安全ではないページ）に移動」をクリック ＞ 「許可」をクリック。
+            </div>
+
+            <ol start="5">
+                <li>完了画面に表示される <strong>ウェブアプリのURL</strong> の下にある「コピー」ボタンを押します。</li>
+                <div class="image-placeholder">[ここに「URLをコピー」の完了画面のスクショ画像を入れると親切です]</div>
+                <p>※コピーしたURL（<code>https://script.google.com/macros/s/.../exec</code>）は、あとで使うのでメモ帳などに貼り付けておいてください。</p>
+            </ol>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step-card">
+            <div class="step-number">3</div>
+            <h2>自動投稿タイマー（トリガー）をセットする</h2>
+            <p>最後に、スプレッドシートに保存されたポストが「自動的にThreadsに投稿される」ように、タイマーをセットします。</p>
+
+            <ol>
+                <li>先ほどデプロイした画面（Apps Script）のまま、左側のメニューから <strong>時計のマーク（トリガー）</strong> をクリックします。</li>
+                <li>右下の青い <strong>「＋ トリガーを追加」</strong> をクリックします。</li>
+                <div class="image-placeholder">[ここに「トリガーを追加」ボタンのスクショ画像を入れると親切です]</div>
+
+                <li>以下の通りに設定して「保存」を押します：
+                    <ul>
+                        <li>実行する関数を選択: <strong>checkScheduledPosts</strong></li>
+                        <li>実行するデプロイを選択: <strong>Head</strong></li>
+                        <li>イベントのソースを選択: <strong>時間主導型</strong></li>
+                        <li>時間ベースのトリガーのタイプを選択: <strong>分ベースのタイマー</strong></li>
+                        <li>時間の間隔を選択（分）: <strong>10分おき</strong></li>
+                    </ul>
+                </li>
+                <div class="image-placeholder">[ここに上記5項目の設定画面のスクショ画像を入れると親切です]</div>
+            </ol>
+
+            <p
+                style="color: var(--accent-green); font-weight: bold; font-size: 1.1rem; text-align: center; margin-top: 30px;">
+                🎉 お疲れ様でした！これで裏側の準備はすべて完了です！
+            </p>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step-card">
+            <div class="step-number">4</div>
+            <h2>ツールを使ってみよう！</h2>
+            <p>いよいよツールへログインします！</p>
+
+            <ol>
+                <li>以下のボタンからツール画面を開きます。</li>
+                <a href="【※ここにあなたがサーバーにアップしたHTMLのURLを入れます※】" target="_blank" class="btn"
+                    style="background: linear-gradient(135deg, #10b981, #059669);">✨ ツールを開く</a>
+
+                <li>合言葉 <strong>「【※合言葉※】」</strong> を入力してログインします。</li>
+                <li>「✨ AI 自動生成設定」を開き、<strong>Step 2でコピーした「Google Apps Script デプロイURL」</strong> を貼り付けます。</li>
+                <li>Gemini API キーと基本プロフィールを入力して、「AIでポストを生成する」を押せば完了です！</li>
+            </ol>
+
+            <p>生成されたカードはスワイプで仕分けでき、右に「保存（Keep）」すると、先ほど作ったあなたのスプレッドシートに自動的に送信・保存されます！</p>
+        </div>
+
+    </div>
+
+</body>
+
+</html>
