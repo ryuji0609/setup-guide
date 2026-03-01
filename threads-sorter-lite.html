@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Threads Post Sorter</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            /* Dark slate */
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --tag-bg: #334155;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            overflow-y: auto;
+            /* Allow scrolling */
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+        }
+
+        header {
+            padding: 24px 20px 12px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .generator-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            margin: 0 20px 20px 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .generator-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid transparent;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #38bdf8;
+            user-select: none;
+        }
+
+        .generator-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .generator-header svg {
+            transition: transform 0.3s ease;
+        }
+
+        .generator-panel:not(.collapsed) .generator-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .generator-panel.collapsed .generator-header svg {
+            transform: rotate(-180deg);
+        }
+
+        .generator-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .generator-panel.collapsed .generator-content {
+            display: none;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .glass-input:focus {
+            border-color: #38bdf8;
+        }
+
+        .glass-select {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .generate-btn:active {
+            transform: scale(0.98);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .main-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            min-height: 400px;
+            /* Minimum height for cards */
+        }
+
+        .card-stack {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 70vh;
+            /* Increased height */
+            min-height: 450px;
+            max-height: 600px;
+        }
+
+        .card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            padding: 32px 24px;
+            cursor: grab;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            transform-origin: 50% 100%;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            user-select: none;
+        }
+
+        .card.dragging {
+            transition: none;
+            cursor: grabbing;
+        }
+
+        .card-tag {
+            display: inline-block;
+            background-color: var(--tag-bg);
+            color: #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 24px;
+            align-self: flex-start;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-content {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            flex-grow: 1;
+            text-align: left;
+            word-break: break-all;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            /* スクロール可能にする */
+            padding: 10px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            margin-bottom: 12px;
+            min-height: 100px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .card-content:focus {
+            border-color: #38bdf8;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        /* スクロールバーのカスタマイズ (WebKit用) */
+        .card-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .card-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .card-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        /* Swipe indicator stamps */
+        .stamp {
+            position: absolute;
+            top: 40px;
+            font-size: 2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 8px 16px;
+            border-radius: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .stamp-keep {
+            right: 20px;
+            color: var(--accent-green);
+            border: 4px solid var(--accent-green);
+            transform: rotate(15deg);
+        }
+
+        .stamp-nope {
+            left: 20px;
+            color: var(--accent-red);
+            border: 4px solid var(--accent-red);
+            transform: rotate(-15deg);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            padding: 20px;
+            padding-bottom: 40px;
+            z-index: 10;
+        }
+
+        .btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn:active {
+            transform: scale(0.9);
+        }
+
+        .btn-nope {
+            background-color: #1e293b;
+            color: var(--accent-red);
+            border: 2px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-keep {
+            background-color: #1e293b;
+            color: var(--accent-green);
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .btn svg {
+            width: 32px;
+            height: 32px;
+            fill: currentColor;
+        }
+
+        /* Sheet */
+        .sheet-preview {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 70vh;
+            background-color: #0f172a;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+            transition: bottom 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: none;
+        }
+
+        .sheet-preview.active {
+            bottom: 0;
+        }
+
+        .sheet-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sheet-handle {
+            width: 40px;
+            height: 5px;
+            background-color: #334155;
+            border-radius: 3px;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* --- Card Actions (Regenerate) --- */
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            justify-content: center;
+            flex-shrink: 0;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            z-index: 100;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            pointer-events: auto;
+            position: relative;
+            z-index: 100;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .action-btn.loading {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        /* --- Card Scheduler --- */
+        .card-scheduler {
+            margin-top: auto;
+            /* Push to bottom of flex container */
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+            /* Don't compress scheduler */
+        }
+
+        .scheduler-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        .schedule-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 6px 4px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .schedule-btn.active {
+            background: #38bdf8;
+            color: #fff;
+            border-color: #38bdf8;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .schedule-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .schedule-preview-badge {
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 8px;
+            color: #38bdf8;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .custom-time-container {
+            margin-top: 10px;
+            display: none;
+            /* Hidden by default */
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .custom-time-container.active {
+            display: flex;
+        }
+
+        .custom-time-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(15, 23, 42, 0.6);
+            color: white;
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .custom-time-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .sheet-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .saved-item {
+            background-color: #1e293b;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .saved-item-tag {
+            font-size: 0.7rem;
+            color: #818cf8;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .floating-btn {
+            position: fixed;
+            top: 24px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-sub);
+            width: 100%;
+            z-index: 1;
+            display: none;
+        }
+
+        .empty-state.visible {
+            display: block;
+        }
+
+        /* VIP Overlay */
+        .vip-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-color);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+        }
+
+        .vip-overlay.hidden {
+            display: none;
+        }
+
+        .vip-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .vip-input {
+            width: 100%;
+            margin: 20px 0;
+            padding: 16px;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 0.2em;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- VIP Lock Screen -->
+    <div id="vipOverlay" class="vip-overlay">
+        <div class="vip-card">
+            <h2 style="color: #38bdf8; margin-bottom: 10px;">VIP専用アクセス</h2>
+            <p style="color: var(--text-sub); font-size: 0.9rem; margin-bottom: 20px;">
+                このツールは現在一部の方にのみ限定公開されています。<br>合言葉を入力してください。
+            </p>
+            <input type="password" id="vipPassword" class="glass-input vip-input" placeholder="合言葉を入力">
+            <button id="vipLoginBtn" class="generate-btn" style="width: 100%;">アクセスする</button>
+            <p id="vipError" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 10px; display: none;">
+                合言葉が間違っています</p>
+        </div>
+    </div>
+
+    <header>
+        <h1>AI Threads Sorter <small
+                style="font-size: 0.8rem; vertical-align: middle; background: rgba(56, 189, 248, 0.2); padding: 2px 8px; border-radius: 4px; color: #38bdf8; margin-left: 10px;">Lite</small>
+        </h1>
+        <div class="subtitle">AIがあなたのスタイルでポストを自動生成 → コピペで投稿</div>
+    </header>
+
+    <div class="generator-panel" id="generatorPanel">
+        <div class="generator-header" id="generatorToggle">
+            <span>✨ AI 自動生成設定</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+        </div>
+        <div class="generator-content">
+            <div class="input-group">
+                <label for="gasUrl" style="color: #10b981;">🔗 Google Apps Script デプロイURL (必須)</label>
+                <input type="text" id="gasUrl" class="glass-input" style="border-color: rgba(16, 185, 129, 0.3);"
+                    placeholder="https://script.google.com/macros/s/xxxxxxxx/exec">
+            </div>
+            <div class="input-group" style="margin-top: 8px;">
+                <label for="apiKey">Gemini API Key (LocalStorageに保存されます)</label>
+                <input type="password" id="apiKey" class="glass-input" placeholder="AI-xxxxxxxxxxxxxxx">
+            </div>
+
+            <div
+                style="background: rgba(255, 255, 255, 0.03); padding: 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 8px;">
+                <h3
+                    style="font-size: 0.9rem; margin-bottom: 12px; color: #f8fafc; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+                    👤 基本プロフィール（必須）</h3>
+                <div class="input-group" style="margin-bottom: 12px;">
+                    <label for="targetAudience">1. 誰に向けて発信しますか？（ターゲット）</label>
+                    <input type="text" id="targetAudience" class="glass-input"
+                        placeholder="例: SNS集客に悩む個人事業主、売上が伸び悩むコーチ">
+                </div>
+                <div class="input-group" style="margin-bottom: 12px;">
+                    <label for="coreMessage">2. 何を伝えたいですか？（発信テーマ/世界観）</label>
+                    <input type="text" id="coreMessage" class="glass-input" placeholder="例: お金をかけないWeb集客のコツ、泥臭い継続こそ最強">
+                </div>
+                <div class="input-group">
+                    <label for="profileStrength">3. あなたの強み・実績・ポジションは？</label>
+                    <textarea id="profileStrength" class="glass-input" rows="2"
+                        placeholder="例: 元広告代理店勤務、実績0から半年で月商100万達成。現在コンサル生3名。"></textarea>
+                </div>
+            </div>
+            <div class="input-group"
+                style="margin-top: 12px; background: rgba(56, 189, 248, 0.05); padding: 12px; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                <label for="launchTopic" style="color: #38bdf8; font-size: 0.85rem;">📣
+                    今、特に紹介したい商品や、ローンチ中のものはありますか？</label>
+                <input type="text" id="launchTopic" class="glass-input" style="border-color: rgba(56, 189, 248, 0.3);"
+                    placeholder="例: MBTI診断を活用した新講座、あひるメソッドBibleなど">
+                <p style="font-size: 0.7rem; color: var(--text-sub); margin-top: 4px;">
+                    ※ここに入力すると、AIが商品への興味を惹きつける投稿を優先して作ります。</p>
+            </div>
+            <div class="input-group" style="margin-top: 8px;">
+                <label for="pastPosts">【口調学習用】過去のベストな投稿（20個程度コピペ推奨）</label>
+                <textarea id="pastPosts" class="glass-input" rows="8"
+                    placeholder="あなたらしい口調、改行のタイミング、絵文字の使い方を学習させるため、過去の投稿を20個ほど一気に貼り付けてください。"></textarea>
+
+                <button id="analyzeStyleBtn" class="generate-btn"
+                    style="margin-top: 8px; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #10b981;">
+                    <span>✨ AIでこの口調を分析・保存する</span>
+                    <div class="spinner" id="analyzeSpinner"
+                        style="display:none; width:16px; height:16px; margin-left:8px; border-top-color:#10b981"></div>
+                </button>
+
+                <div id="styleProfileContainer"
+                    style="display: none; margin-top: 12px; padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; font-size: 0.85rem; color: #cbd5e1;">
+                    <strong style="color: #fff; display: block; margin-bottom: 8px;">📋 現在のスタイルプロファイル</strong>
+                    <div id="styleProfileDisplay" style="white-space: pre-wrap; line-height: 1.5;"></div>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="generate-btn" style="margin-top: 8px;">
+                <span>AIでポストを生成する</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
+        </div>
+    </div>
+
+    <button class="floating-btn" id="openSheetBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+        </svg>
+        保存済み (<span id="saveCount">0</span>)
+    </button>
+
+    <div class="main-container">
+        <div class="empty-state" id="emptyState">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <h2>仕分け完了！</h2>
+            <p style="margin-top:8px; font-size:0.875rem;">すべてのAI生成ポストを確認しました。<br>新しいポストを生成しますか？</p>
+            <button
+                style="margin-top:20px; padding:10px 24px; border-radius:8px; background:#38bdf8; color:#fff; border:none; font-weight:bold; cursor:pointer;"
+                onclick="location.reload()">再生成する</button>
+        </div>
+
+        <div class="card-stack" id="cardStack">
+            <!-- Cards will be injected here via JS -->
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <button class="btn btn-nope" id="btnNope" aria-label="Reject">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+        </button>
+        <button class="btn btn-keep" id="btnKeep" aria-label="Approve">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+        </button>
+    </div>
+
+    <div class="sheet-preview" id="bottomSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <h3 style="font-size:1.1rem">スプシ保存予定リスト</h3>
+            <button class="close-btn" id="closeSheetBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="sheet-content" id="savedItemsList">
+            <p style="color:#64748b; text-align:center; padding-top:40px;">まだ保存されたポストはありません</p>
+        </div>
+    </div>
+
+    <script>
+        // Dummy Data based on the 6 tags
+        const postsData = [
+            {
+                id: 6,
+                tag: '🎈 そっと背中を押す',
+                text: 'ずっと一人で悩んでるなら、環境を変えるのもありかも。\n\n「自分には無理かも」って思ってた人が、少しやり方を変えただけで急に成果が出ること、本当によくある。\n\n固執しなくて大丈夫。詳しくはプロフのリンクに置いておきました。'
+            },
+            {
+                id: 5,
+                tag: '🎉 小さな成功・感謝',
+                text: '昨日リリースしたNote、早速「読んでよかったです！」ってDMいただいて、カフェで一人泣きそうになってる😢\n\n自分の過去の失敗経験が、こうやって今誰かの役に立ってると思うと、発信続けてきて本当によかったなぁ。'
+            },
+            {
+                id: 4,
+                tag: '💎 信念・価値観',
+                text: '「誰でもスマホぽちぽちで月100万！」みたいな煽り、本当に嫌いなんだよね。\n\nビジネスってそんな魔法じゃないし。\n\n泥臭くても誠実にお客さんと向き合える、そんな人とだけ私は関わっていきたいな。ラクして稼ぎたい人は他へどうぞ。'
+            },
+            {
+                id: 3,
+                tag: '💡 アンラーニング・気づき',
+                text: '昔は「毎日3投稿しないと読まれない！」って焦ってたけど、実はあれ間違いだった。\n\n大事なのは量じゃなくて、たった一人の「わかる！」って共感を引き出す熱量だった。\n\n無理して薄い発信を量産するの、今日で辞めない？'
+            },
+            {
+                id: 2,
+                tag: '🔥 プロセス・葛藤',
+                text: '今度のNote、第3章でめちゃくちゃ筆が止まってる…。\n\n「継続のコツ」と「挫折の乗り越え方」、初心者の人が本当に知りたいのはどっちなんだろう？\n\nどっちも書きたいけど長くなりすぎるしなぁ。みんなだったらどっち読みたい？'
+            },
+            {
+                id: 1,
+                tag: '☕ 共感・日常',
+                text: '今日は絶対作業するぞー！と思ってたのに、気づいたらYouTube見て2時間経ってた…自己嫌悪ヤバい😭\n\nでもまぁ、人間だしそんな日もあるよね。完璧じゃない自分を許すところから、また明日頑張ろう。'
+            }
+        ];
+
+        const cardStack = document.getElementById('cardStack');
+        const emptyState = document.getElementById('emptyState');
+        const savedItemsList = document.getElementById('savedItemsList');
+        const saveCountEl = document.getElementById('saveCount');
+        const bottomSheet = document.getElementById('bottomSheet');
+
+        let savedPosts = [];
+        let cards = []; // Now stores card elements directly
+
+        // --- Persistence Logic ---
+        function saveCardsState() {
+            const cardsData = cards.map(c => c.data);
+            localStorage.setItem('threads_unsorted_cards', JSON.stringify(cardsData));
+        }
+
+        function loadCardsState() {
+            const stored = localStorage.getItem('threads_unsorted_cards');
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    console.error("Failed to parse saved cards", e);
+                }
+            }
+            return null;
+        }
+
+        // Initialize Cards
+        function initCards() {
+            const savedState = loadCardsState();
+            const initialData = (savedState && savedState.length > 0) ? savedState : postsData;
+
+            initialData.forEach((data, index) => {
+                createNewCard(data, index, initialData.length);
+            });
+
+            if (savedState && savedState.length > 0) {
+                generatorPanel.classList.add('collapsed');
+            }
+        }
+
+        function setupDrag(el, data) {
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let isDragging = false;
+            let isHorizontalSwipe = false;
+
+            const keepStamp = el.querySelector('.stamp-keep');
+            const nopeStamp = el.querySelector('.stamp-nope');
+            const editableContent = el.querySelector('.card-content');
+
+            const onStart = (e) => {
+                // 1. ボタンや入力エリア内での操作をチェック
+                if (e.target.closest('.action-btn') ||
+                    e.target.closest('.card-scheduler') ||
+                    e.target === editableContent ||
+                    document.activeElement === editableContent) {
+                    return;
+                }
+
+                const touch = e.type.includes('mouse') ? e : e.touches[0];
+                startX = touch.pageX;
+                startY = touch.pageY;
+                isDragging = true;
+                isHorizontalSwipe = false;
+                el.classList.add('dragging');
+            };
+
+            const onMove = (e) => {
+                if (!isDragging) return;
+
+                // 2. テキスト編集中（フォーカス中）はスワイプを完全に無効化
+                if (document.activeElement === editableContent) {
+                    isDragging = false;
+                    return;
+                }
+
+                const touch = e.type.includes('mouse') ? e : e.touches[0];
+                currentX = touch.pageX - startX;
+                const currentY = touch.pageY - startY;
+
+                // 3. 初動で縦移動が強い場合はスワイプとみなさない（スクロールを優先）
+                if (!isHorizontalSwipe) {
+                    if (Math.abs(currentX) > 10 && Math.abs(currentX) > Math.abs(currentY)) {
+                        isHorizontalSwipe = true;
+                    } else if (Math.abs(currentY) > 10) {
+                        isDragging = false;
+                        return;
+                    }
+                }
+
+                if (!isHorizontalSwipe) return;
+
+                // 横方向のスクロールを防止（iOS/Androidの「戻る」ジェスチャーとの競合回避）
+                if (e.cancelable) e.preventDefault();
+
+                // Rotate based on drag distance
+                const rotate = currentX * 0.05;
+                el.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+
+                // Show stamps based on direction
+                if (currentX > 50) {
+                    keepStamp.style.opacity = Math.min((currentX - 50) / 100, 1);
+                    nopeStamp.style.opacity = 0;
+                } else if (currentX < -50) {
+                    nopeStamp.style.opacity = Math.min((Math.abs(currentX) - 50) / 100, 1);
+                    keepStamp.style.opacity = 0;
+                } else {
+                    keepStamp.style.opacity = 0;
+                    nopeStamp.style.opacity = 0;
+                }
+            };
+
+            const onEnd = (e) => {
+                if (!isDragging) {
+                    el.classList.remove('dragging');
+                    return;
+                }
+                isDragging = false;
+                el.classList.remove('dragging');
+
+                if (isHorizontalSwipe && currentX > 120) {
+                    swipeRight(el, data);
+                } else if (isHorizontalSwipe && currentX < -120) {
+                    swipeLeft(el);
+                } else {
+                    // Snap back
+                    el.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                    el.style.transform = `translateX(0px) rotate(0deg)`;
+                    keepStamp.style.opacity = 0;
+                    nopeStamp.style.opacity = 0;
+                    setTimeout(() => { el.style.transition = ''; }, 400);
+                }
+                currentX = 0;
+            };
+
+            el.addEventListener('mousedown', onStart);
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onEnd);
+
+            // passive: true を外して、必要に応じて preventDefault できるようにする
+            el.addEventListener('touchstart', onStart, { passive: false });
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+        }
+
+        function setupCardActions(card, tag) {
+            const btnShorter = card.querySelector('.btn-shorter');
+            const btnLonger = card.querySelector('.btn-longer');
+            const textEl = card.querySelector('.card-content');
+
+            const handleRegenerate = async (btn, instructionType) => {
+                if (btn.classList.contains('loading')) return;
+
+                const originalText = textEl.innerText;
+                const originalBtnHtml = btn.innerHTML;
+
+                btn.classList.add('loading');
+                btn.innerHTML = '生成中...';
+                textEl.style.opacity = '0.5';
+
+                try {
+                    if (!window.threadsGenerator || !window.threadsGenerator.regenerateCard) {
+                        throw new Error('AIエンジンが正しく読み込まれていません。画面をリロードしてください。');
+                    }
+                    const newText = await window.threadsGenerator.regenerateCard({
+                        tag: tag,
+                        currentText: originalText,
+                        instruction: instructionType
+                    });
+
+                    textEl.innerText = newText;
+
+                    // Update data and save state
+                    const cardIndex = cards.findIndex(c => c.element === card);
+                    if (cardIndex !== -1) {
+                        cards[cardIndex].data.text = newText;
+                        saveCardsState();
+                    }
+                } catch (e) {
+                    alert(`書き直しに失敗しました: ${e.message}`);
+                } finally {
+                    btn.classList.remove('loading');
+                    btn.innerHTML = originalBtnHtml;
+                    textEl.style.opacity = '1';
+                }
+            };
+
+            const addActionEvent = (btn, type) => {
+                const handler = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRegenerate(btn, type);
+                };
+                btn.addEventListener('click', handler);
+                btn.addEventListener('touchstart', handler, { passive: false });
+                btn.addEventListener('pointerdown', handler, { passive: false }); // Added pointerdown
+            };
+
+            addActionEvent(btnShorter, 'shorter');
+            addActionEvent(btnLonger, 'longer');
+        }
+
+        function createNewCard(data, index, total) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.id = data.id;
+            card.dataset.topic = data.topic || "";
+            card.style.zIndex = total - index;
+            card.style.transform = `scale(${1 - index * 0.04}) translateY(${index * 15}px)`;
+
+            card.innerHTML = `
+                <div class="stamp stamp-keep" id="stamp-keep-${data.id}">保存</div>
+                <div class="stamp stamp-nope" id="stamp-nope-${data.id}">削除</div>
+                <div class="card-tag">${data.tag}</div>
+                <div class="card-content" contenteditable="true" spellcheck="false">${data.text}</div>
+                
+
+
+                <div class="card-actions">
+                    <button class="action-btn btn-shorter">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        もっと短く
+                    </button>
+                    <button class="action-btn btn-longer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"></path><polyline points="7 16 12 21 17 16"></polyline><line x1="12" y1="21" x2="12" y2="9"></line></svg>
+                        もっと詳しく
+                    </button>
+                </div>
+            `;
+
+            cardStack.appendChild(card);
+            cards.push({ element: card, data: data });
+
+            // Add touch/mouse listeners to the top card if it's the first one
+            if (index === 0) setupDrag(card, data);
+            setupCardActions(card, data.tag);
+        }
+
+
+
+        function swipeRight(el, data) {
+            const editedText = el.querySelector('.card-content').innerText;
+            el.style.transform = `translateX(1000px) rotate(30deg) scale(1.05)`;
+            el.style.opacity = 0;
+            savePost({ ...data, text: editedText });
+            setTimeout(() => {
+                el.remove();
+                nextCard();
+            }, 300);
+        }
+
+        function swipeLeft(el) {
+            el.style.transform = `translateX(-1000px) rotate(-30deg) scale(1.05)`;
+            el.style.opacity = 0;
+            setTimeout(() => {
+                el.remove();
+                nextCard();
+            }, 300);
+        }
+
+        function nextCard() {
+            cards.shift();
+            saveCardsState(); // Update saved state after removing a card
+
+            if (cards.length > 0) {
+                // Attach listeners to the new top card
+                setupDrag(cards[0].element, cards[0].data);
+
+                // Fix scaling for remaining cards
+                cards.forEach((cardObj, index) => {
+                    cardObj.element.style.transform = `scale(${1 - index * 0.04}) translateY(${index * 15}px)`;
+                });
+            } else {
+                emptyState.classList.add('visible');
+            }
+        }
+
+        // 動的にGASのURLを取得する関数
+        function getGasUrl() {
+            return document.getElementById('gasUrl').value.trim();
+        }
+
+        function savePost(data) {
+            savedPosts.push(data);
+            saveCountEl.textContent = savedPosts.length;
+
+            // Update sheet UI
+            if (savedPosts.length === 1) savedItemsList.innerHTML = '';
+
+            const item = document.createElement('div');
+            item.className = 'saved-item';
+            item.innerHTML = `
+                <span class="saved-item-tag">${data.tag}</span>
+                <div style="font-size:0.75rem; color:#818cf8; margin-bottom:4px;">🕒 予約: ${data.scheduledAt}</div>
+                ${data.text.replace(/\n/g, '<br>')}
+                <div style="font-size:0.7rem; color:#10b981; margin-top:8px; text-align:right;">✓ スプシ送信済</div>
+            `;
+            // Add at top
+            savedItemsList.insertBefore(item, savedItemsList.firstChild);
+
+            // GASへデータを送信 (非同期で裏側で送信)
+            const gasUrl = getGasUrl();
+            if (gasUrl) {
+                fetch(gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // GASのCORS制約を回避するため必須
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        tag: data.tag,
+                        text: data.text,
+                        topic: data.topic,
+                        scheduledAt: data.scheduledAt
+                    })
+                }).catch(err => console.error('GAS送信エラー:', err));
+            } else {
+                console.warn('GAS URLが設定されていないため、スプレッドシートへの保存はスキップされました');
+            }
+        }
+
+        // Button Actions
+        document.getElementById('btnNope').addEventListener('click', () => {
+            if (cards.length > 0) {
+                const el = cards[0].element;
+                const nopeStamp = el.querySelector('.stamp-nope');
+                nopeStamp.style.opacity = 1;
+                swipeLeft(el);
+            }
+        });
+
+        document.getElementById('btnKeep').addEventListener('click', () => {
+            if (cards.length > 0) {
+                const el = cards[0].element;
+                const keepStamp = el.querySelector('.stamp-keep');
+                keepStamp.style.opacity = 1;
+                swipeRight(el, cards[0].data);
+            }
+        });
+
+        // Bottom Sheet Logic
+        document.getElementById('openSheetBtn').addEventListener('click', () => {
+            bottomSheet.classList.add('active');
+        });
+
+        document.getElementById('closeSheetBtn').addEventListener('click', () => {
+            bottomSheet.classList.remove('active');
+        });
+
+        // Initialize API Key and other settings from GAS
+        async function loadSettingsFromGAS() {
+            const gasUrl = getGasUrl();
+            if (!gasUrl) return;
+
+            try {
+                const response = await fetch(gasUrl);
+                if (!response.ok) throw new Error('Failed to fetch settings');
+                const settings = await response.json();
+
+                if (settings.geminiKey) {
+                    apiKeyInput.value = settings.geminiKey;
+                    localStorage.setItem('gemini_api_key', settings.geminiKey);
+                    if (window.threadsGenerator) window.threadsGenerator.setApiKey(settings.geminiKey);
+                }
+                if (settings.targetAudience) {
+                    document.getElementById('targetAudience').value = settings.targetAudience;
+                    localStorage.setItem('threads_target_audience', settings.targetAudience);
+                }
+                if (settings.coreMessage) {
+                    document.getElementById('coreMessage').value = settings.coreMessage;
+                    localStorage.setItem('threads_core_message', settings.coreMessage);
+                }
+                if (settings.profileStrength) {
+                    document.getElementById('profileStrength').value = settings.profileStrength;
+                    localStorage.setItem('threads_profile_strength', settings.profileStrength);
+                }
+                if (settings.pastPosts) {
+                    pastPostsInput.value = settings.pastPosts;
+                    localStorage.setItem('threads_past_posts', settings.pastPosts);
+                }
+                if (settings.launchTopic) {
+                    document.getElementById('launchTopic').value = settings.launchTopic;
+                    localStorage.setItem('threads_launch_topic', settings.launchTopic);
+                }
+                console.log('Settings synced from GAS');
+            } catch (err) {
+                console.warn('GASからの設定取得に失敗しました。LocalStorageを使用します:', err);
+            }
+        }
+
+        // Save settings to GAS
+        async function saveSettingsToGAS() {
+            const gasUrl = getGasUrl();
+            if (!gasUrl) return;
+
+            const settings = {
+                action: 'saveSettings',
+                geminiKey: apiKeyInput.value,
+                targetAudience: document.getElementById('targetAudience').value,
+                coreMessage: document.getElementById('coreMessage').value,
+                profileStrength: document.getElementById('profileStrength').value,
+                launchTopic: document.getElementById('launchTopic').value,
+                pastPosts: pastPostsInput.value
+            };
+
+            try {
+                await fetch(gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(settings)
+                });
+                console.log('Settings saved to GAS');
+            } catch (err) {
+                console.error('GASの設定保存に失敗しました:', err);
+            }
+        }
+
+        const apiKeyInput = document.getElementById('apiKey');
+        const gasUrlInput = document.getElementById('gasUrl');
+
+        // Initial load from storage
+        const storedGasUrl = localStorage.getItem('threads_gas_url');
+        if (storedGasUrl) {
+            gasUrlInput.value = storedGasUrl;
+            loadSettingsFromGAS(); // Load once we have the URL
+        }
+
+        // VIP Lock Logic
+        const VIP_PASSWORD = "vip"; // ここで合言葉を設定 (例: vip2026 など好きな文字列に変更)
+        const vipOverlay = document.getElementById('vipOverlay');
+        const vipPasswordInput = document.getElementById('vipPassword');
+        const vipLoginBtn = document.getElementById('vipLoginBtn');
+        const vipError = document.getElementById('vipError');
+
+        // Check if already unlocked
+        if (localStorage.getItem('threads_vip_unlocked') === 'true') {
+            vipOverlay.classList.add('hidden');
+        }
+
+        function checkVipPassword() {
+            if (vipPasswordInput.value === VIP_PASSWORD) {
+                localStorage.setItem('threads_vip_unlocked', 'true');
+                vipOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    vipOverlay.classList.add('hidden');
+                }, 300);
+            } else {
+                vipError.style.display = 'block';
+                vipPasswordInput.value = '';
+                vipPasswordInput.focus();
+            }
+        }
+
+        vipLoginBtn.addEventListener('click', checkVipPassword);
+        vipPasswordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkVipPassword();
+        });
+
+
+        // AI Generation Logic Integration
+        const generateBtn = document.getElementById('generateBtn');
+        const spinner = document.getElementById('spinner');
+        const pastPostsInput = document.getElementById('pastPosts');
+
+        const targetAudienceInput = document.getElementById('targetAudience');
+        const coreMessageInput = document.getElementById('coreMessage');
+        const profileStrengthInput = document.getElementById('profileStrength');
+
+        // Style Analysis Logic
+        const analyzeStyleBtn = document.getElementById('analyzeStyleBtn');
+        const analyzeSpinner = document.getElementById('analyzeSpinner');
+        const styleProfileContainer = document.getElementById('styleProfileContainer');
+        const styleProfileDisplay = document.getElementById('styleProfileDisplay');
+
+        const existingProfile = localStorage.getItem('threads_style_profile');
+        if (existingProfile) {
+            styleProfileContainer.style.display = 'block';
+            styleProfileDisplay.textContent = existingProfile;
+        }
+
+        analyzeStyleBtn.addEventListener('click', async () => {
+            if (!window.threadsGenerator) {
+                alert('AIスクリプトが読み込まれていません。');
+                return;
+            }
+            if (!pastPostsInput.value.trim()) {
+                alert('先に過去の投稿を貼り付けてください。');
+                return;
+            }
+            if (!apiKeyInput.value.trim() && !window.threadsGenerator.hasApiKey()) {
+                alert('Gemini API Keyを設定してください。');
+                return;
+            }
+
+            analyzeStyleBtn.disabled = true;
+            analyzeSpinner.style.display = 'block';
+            analyzeStyleBtn.style.opacity = '0.7';
+
+            try {
+                window.threadsGenerator.setApiKey(apiKeyInput.value);
+                const result = await window.threadsGenerator.analyzeStyle(pastPostsInput.value);
+
+                styleProfileContainer.style.display = 'block';
+                styleProfileDisplay.textContent = result;
+                scheduleGASSave();
+            } catch (err) {
+                alert('分析エラー: ' + err.message);
+            } finally {
+                analyzeStyleBtn.disabled = false;
+                analyzeSpinner.style.display = 'none';
+                analyzeStyleBtn.style.opacity = '1';
+            }
+        });
+
+        // Collapsible Panel Logic
+        const generatorPanel = document.getElementById('generatorPanel');
+        const generatorToggle = document.getElementById('generatorToggle');
+
+        generatorToggle.addEventListener('click', () => {
+            generatorPanel.classList.toggle('collapsed');
+        });
+
+        // Initialize from storage
+        const storedPastPosts = localStorage.getItem('threads_past_posts');
+        if (storedPastPosts) {
+            pastPostsInput.value = storedPastPosts;
+        }
+        if (localStorage.getItem('threads_target_audience')) {
+            targetAudienceInput.value = localStorage.getItem('threads_target_audience');
+        }
+        if (localStorage.getItem('threads_core_message')) {
+            coreMessageInput.value = localStorage.getItem('threads_core_message');
+        }
+        if (localStorage.getItem('threads_profile_strength')) {
+            profileStrengthInput.value = localStorage.getItem('threads_profile_strength');
+        }
+        const storedLaunchTopic = localStorage.getItem('threads_launch_topic');
+        if (storedLaunchTopic) {
+            document.getElementById('launchTopic').value = storedLaunchTopic;
+        }
+
+        // --- Debounced GAS Auto-Save (PC→スマホ同期) ---
+        let _gasSaveTimer = null;
+        function scheduleGASSave() {
+            if (_gasSaveTimer) clearTimeout(_gasSaveTimer);
+            _gasSaveTimer = setTimeout(() => {
+                saveSettingsToGAS();
+                console.log('設定を自動保存しました (GAS)');
+            }, 3000); // 3秒間操作が止まったら保存
+        }
+
+        pastPostsInput.addEventListener('change', (e) => {
+            localStorage.setItem('threads_past_posts', e.target.value);
+            scheduleGASSave();
+        });
+        gasUrlInput.addEventListener('change', (e) => {
+            localStorage.setItem('threads_gas_url', e.target.value);
+            loadSettingsFromGAS(); // URLが変わったら設定を再読み込み試行
+        });
+        targetAudienceInput.addEventListener('change', (e) => {
+            localStorage.setItem('threads_target_audience', e.target.value);
+            scheduleGASSave();
+        });
+        coreMessageInput.addEventListener('change', (e) => {
+            localStorage.setItem('threads_core_message', e.target.value);
+            scheduleGASSave();
+        });
+        profileStrengthInput.addEventListener('change', (e) => {
+            localStorage.setItem('threads_profile_strength', e.target.value);
+            scheduleGASSave();
+        });
+        document.getElementById('launchTopic').addEventListener('change', (e) => {
+            localStorage.setItem('threads_launch_topic', e.target.value);
+            scheduleGASSave();
+        });
+        // APIキーもblip時に保存
+        apiKeyInput.addEventListener('change', () => {
+            localStorage.setItem('gemini_api_key', apiKeyInput.value);
+            if (window.threadsGenerator) window.threadsGenerator.setApiKey(apiKeyInput.value);
+            scheduleGASSave();
+        });
+
+        generateBtn.addEventListener('click', async () => {
+            if (!window.threadsGenerator) {
+                alert('AIスクリプトが読み込まれていません。');
+                return;
+            }
+
+            if (!getGasUrl()) {
+                alert('連携用のGoogle Apps Script URLを入力してください。');
+                return;
+            }
+
+            if (!apiKeyInput.value) {
+                alert('APIキーを入力してください。');
+                return;
+            }
+
+            if (!targetAudienceInput.value || !coreMessageInput.value) {
+                alert('「誰に向けて」「何を伝えたいか」は必須項目です。両方とも入力してください。');
+                return;
+            }
+
+            const launchTopic = document.getElementById('launchTopic').value;
+
+            // Update storage on generate just in case they didn't blur
+            localStorage.setItem('threads_past_posts', pastPostsInput.value);
+            localStorage.setItem('threads_target_audience', targetAudienceInput.value);
+            localStorage.setItem('threads_core_message', coreMessageInput.value);
+            localStorage.setItem('threads_profile_strength', profileStrengthInput.value);
+            localStorage.setItem('threads_launch_topic', launchTopic);
+
+            window.threadsGenerator.setApiKey(apiKeyInput.value);
+
+            // UI State
+            generateBtn.disabled = true;
+            spinner.style.display = 'block';
+
+            // Sync current settings to GAS before generation (to ensure mobile persistence)
+            await saveSettingsToGAS();
+
+            emptyState.classList.remove('visible');
+            cardStack.innerHTML = '';
+            cards = [];
+
+            try {
+                const results = await window.threadsGenerator.generatePosts({
+                    targetAudience: targetAudienceInput.value,
+                    coreMessage: coreMessageInput.value,
+                    profileStrength: profileStrengthInput.value,
+                    pastPosts: pastPostsInput.value,
+                    launchTopic: launchTopic
+                });
+
+                let newPostsData = results.map((postObj, i) => ({
+                    id: Date.now() + i,
+                    tag: postObj.tag, // AI returns { tag, text }
+                    text: postObj.text,
+                    topic: "Auto-Education from Profile" // Save reference for backend
+                }));
+
+                // Default empty check
+                if (newPostsData.length === 0) throw new Error("ポストが生成されませんでした");
+
+                newPostsData.forEach((data, index) => {
+                    createNewCard(data, index, newPostsData.length);
+                });
+
+                // Auto-collapse the panel to show the cards
+                generatorPanel.classList.add('collapsed');
+
+                // Smooth scroll to card stack down
+                document.querySelector('.main-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                // Save the newly generated cards
+                saveCardsState();
+
+            } catch (err) {
+                alert(`生成に失敗しました: ${err.message}`);
+                emptyState.classList.add('visible');
+            } finally {
+                generateBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        });
+
+        // === Embedded AI Generator Logic ===
+        class ThreadsGenerator {
+            constructor() {
+                this.apiKey = localStorage.getItem('gemini_api_key') || '';
+                this.model = "gemini-2.5-flash";
+                this.endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
+                this.styleProfile = localStorage.getItem('threads_style_profile') || '';
+            }
+
+            setApiKey(key) {
+                this.apiKey = key;
+                localStorage.setItem('gemini_api_key', key);
+            }
+
+            hasApiKey() {
+                return !!this.apiKey;
+            }
+
+            /**
+             * 過去投稿からスタイルプロファイルを自動生成する
+             */
+            async analyzeStyle(pastPosts) {
+                if (!this.hasApiKey()) throw new Error('APIキーが設定されていません。');
+                if (!pastPosts || pastPosts.trim() === '') throw new Error('過去の投稿を先に貼り付けてください。');
+
+                const prompt = `
+あなたは文体分析の専門家です。以下のSNS投稿リストを読み、この人物の「書き方のクセ」を正確に抽出してください。
+
+---投稿リスト---
+${pastPosts}
+---ここまで---
+
+以下の項目を分析し、箇条書きで日本語で出力してください。
+これは後でAIゴーストライターに渡す「スタイルプロファイル」として使います。
+
+1. 一人称（私/俺/僕/あたし 等）
+2. 語尾パターン（頻出する語尾を5つ以上。例：「〜だよね」「〜なんだよなぁ」）
+3. 句読点の使い方（「、」「。」を多用するか、省略するか）
+4. 改行のリズム（何文ごと/何文字ごとに改行するか、空行の使い方）
+5. 絵文字の傾向（よく使う絵文字、使わない絵文字、配置パターン）
+6. 禁止すべき表現（この人が絶対に使わない言い回し。敬語・丁寧語を使うか使わないか含む）
+7. 感情表現の特徴（感情をどう表す？ 感嘆符の使い方、「…」の使い方等）
+8. 文章の平均的な長さ（短文派か長文派か、概算文字数）
+9. 特徴的なクセ（口癖、独特の言い回し、比喩の使い方等）
+10. 全体的なトーン（カジュアル/フォーマル、明るい/落ち着き 等の印象）
+
+プレーンテキストで出力してください（JSON不要、バッククォート不要）。
+                `;
+
+                const response = await fetch(`${this.endpoint}?key=${this.apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.3 }
+                    })
+                });
+
+                if (!response.ok) throw new Error('スタイル分析に失敗しました。');
+                const data = await response.json();
+                const result = data.candidates[0].content.parts[0].text.trim();
+
+                this.styleProfile = result;
+                localStorage.setItem('threads_style_profile', result);
+                return result;
+            }
+
+            async generatePosts(params) {
+                if (!this.hasApiKey()) {
+                    throw new Error('Gemini APIキーが設定されていません。');
+                }
+
+                const prompt = this._buildPrompt(params);
+
+                try {
+                    const response = await fetch(`${this.endpoint}?key=${this.apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                temperature: 0.8,
+                                responseMimeType: "application/json",
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || 'APIリクエストに失敗しました。');
+                    }
+
+                    const data = await response.json();
+                    const rawText = data.candidates[0].content.parts[0].text;
+
+                    try {
+                        const parsedResult = JSON.parse(rawText);
+                        return parsedResult.posts || [];
+                    } catch (e) {
+                        console.error("JSONパースエラー:", rawText);
+                        throw new Error('AIから正しくない形式のデータが返されました。');
+                    }
+                } catch (error) {
+                    console.error('Generation Error:', error);
+                    throw error;
+                }
+            }
+
+            _buildPrompt(params) {
+                // ====================================
+                // レイヤー1: 口調ロック（最優先・絶対厳守）
+                // ====================================
+                let toneLayer = '';
+
+                if (this.styleProfile) {
+                    toneLayer = `
+【🔒 レイヤー1: 口調ロック（最優先・全ルールに優越する）】
+以下はこの発信者の「書き方のクセ」を分析した結果です。
+このスタイルプロファイルに書かれた口調・語尾・改行・絵文字のルールは、
+他のどんな指示よりも優先されます。矛盾する場合は、必ずこちらに従ってください。
+
+${this.styleProfile}
+                    `;
+                }
+
+                let pastPostsRef = '';
+                if (params.pastPosts && params.pastPosts.trim() !== '') {
+                    pastPostsRef = `
+【📝 口調の原典（過去投稿リスト）】
+以下の投稿群がこの発信者の「本物の声」です。
+生成する全ての投稿は、この中に混ぜても「どれがAIか」判別不可能なレベルで口調を一致させてください。
+AI特有の言い回し（「〜ですね」「〜してみましょう」「いかがでしょうか」「結論から言うと」）は一切禁止です。
+
+---過去投稿---
+${params.pastPosts}
+---ここまで---
+
+【口調クローンの具体指示】
+1. 一人称・語尾のリズムを完全コピー（過去投稿と1mmもズレない）
+2. 句読点・改行の間合いをそのまま再現
+3. 絵文字は過去投稿で使われているものだけ使用可。未使用の絵文字は絶対に使わない
+4. 感情表現（「ヤバい」「めちゃくちゃ」「…」等）のテンションをそのまま反映
+                    `;
+                }
+
+                // ====================================
+                // レイヤー2: テーマ指定（6教育タグ）
+                // ====================================
+                let launchTopicText = '';
+                if (params.launchTopic && params.launchTopic.trim() !== '') {
+                    launchTopicText = `
+【商品テーマ】
+今回の投稿群は「${params.launchTopic}」への興味を自然に高めることを意識してください。
+直接的な宣伝ではなく、読者が「もっと知りたい」と感じるような伏線を散りばめること。
+                    `;
+                }
+
+                return `
+あなたはSNS（Threads - スレッズ）のプロのゴーストライターです。
+
+${toneLayer}
+
+${pastPostsRef}
+
+【基本プロフィール（絶対に守る軸）】
+- ターゲット（誰に向けて）: ${params.targetAudience}
+- 発信テーマ（伝えたいコアメッセージ）: ${params.coreMessage}
+- 強みやポジション: ${params.profileStrength || '特になし'}
+※この軸に沿った内容のみを発信してください。ターゲットに響かないノイズは含めないでください。
+
+${launchTopicText}
+
+【プラットフォームルール: Threads】
+- 世界観は「日曜午後のスタバ」。殺伐とした正論やマウントはNG
+- エモーション（共感・感情）で包む。ロジックで殴らない
+- マーケティング用語・横文字は使わない。中学生でもわかる日常語で
+- 「隣のお姉さん/先輩」の距離感。教祖ポジションNG
+- 専門性は「お悩み解決」に、実績は「感謝」に、宣伝は「相談」に偽装する
+
+【ミッション: 20個の投稿を生成】
+それぞれの投稿に「6つの教育」の中から1つテーマを割り当ててください。
+テーマはあくまで「この投稿が読者にどんな気づきを与えるか」の分類です。
+教育テーマが文体に影響を与えてはいけません。口調は常にレイヤー1（過去投稿の口調）に従ってください。
+
+6つの教育テーマ:
+- 🤝 信用の教育（自己開示・実績の共有で信頼を獲得）
+- 🎯 目的の教育（理想の未来・ベネフィットを想像させる）
+- 🚧 問題の教育（現状の課題に気づかせる。解決はしない）
+- 🗝️ 手段の教育（解決策のヒントを示す）
+- 💰 投資の教育（自己投資の価値に気づかせる）
+- 🏃‍♂️ 行動の教育（今すぐ動く理由を作る）
+
+【文字数】200〜400文字程度（スレッズに最適な長さ）
+
+【⚠️ 最終チェックリスト】
+□ 全投稿が「過去投稿リスト」の中に紛れても違和感ゼロか？
+□ AI特有の表現（「〜してみませんか？」「ぜひ」「いかがでしょうか」）が1つもないか？
+□ 過去投稿で使われていない絵文字を勝手に追加していないか？
+□ 改行のリズムが過去投稿と一致しているか？
+
+必ず純粋なJSONのみで出力してください（バッククォートなし）。
+{
+    "posts": [
+        { "tag": "🤝 信用の教育", "text": "投稿テキスト..." },
+        ...
+        { "tag": "テーマ名", "text": "投稿テキスト..." }
+    ]
+}
+                `;
+            }
+
+            /**
+             * 特定のカードのテキストだけを再生成するメソッド（短く/長く）
+             */
+            async regenerateCard(params) {
+                if (!this.hasApiKey()) {
+                    throw new Error('Gemini APIキーが設定されていません。');
+                }
+
+                const prompt = `
+        あなたはSNS（Threads）のプロのゴーストライターです。
+        以下の「元の投稿テキスト」を元に、指示に従って文章を書き直してください。
+        ただし、元の文章が持つ感情、口調、絵文字のテンションは決して崩さないでください。
+
+        【指示】
+        ${params.instruction === 'shorter' ? '元の内容をギュッと要約して、半分くらいの短さ（100〜150文字程度）にスッキリさせてください。' : '元の内容から読者の共感ポイントや情景描写を膨らませて、さらに詳しく長い文章（400〜500文字程度）に書き直してください。'}
+        ※いずれの指示でも、AI特有の優等生な言い回しは排除し、人間らしさを保つこと。
+
+        【元の投稿（タグ: ${params.tag}）】
+        ${params.currentText}
+
+        出力はJSONではなく、**書き直したプレーンなテキストの文章のみ**を直接返してください。（バッククォート等も不要）
+                `;
+
+                try {
+                    const response = await fetch(`${this.endpoint}?key=${this.apiKey}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: prompt
+                                }]
+                            }],
+                            generationConfig: {
+                                temperature: 0.8
+                            }
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('APIリクエストに失敗しました。');
+
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text.trim();
+
+                } catch (error) {
+                    console.error('Regeneration Error:', error);
+                    throw error;
+                }
+            }
+        }
+
+        // Initialize the AI Generator
+        window.threadsGenerator = new ThreadsGenerator();
+
+        // Call initCards safely on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initCards();
+        });
+
+    </script>
+</body>
+
+</html>
