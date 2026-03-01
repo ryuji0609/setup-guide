@@ -187,7 +187,7 @@
                     target="_blank" class="btn">📊 テンプレートを開く</a>
 
                 <li>左上のメニューから <strong>「ファイル」 ＞ 「コピーを作成」</strong> をクリックします。</li>
-                <div class="image-placeholder">[ここに「ファイル＞コピーを作成」のスクショ画像を入れると親切です]</div>
+                
 
                 <li>名前を「設定用：AI Threads Sorter」など分かりやすいものにして、<strong>「コピーを作成」</strong>ボタンを押します。</li>
                 <li>これで、あなたのGoogleドライブに専用のシステムが保存されました。</li>
@@ -204,7 +204,7 @@
             <ol>
                 <li>コピーしたスプレッドシートの上のメニューから <strong>「拡張機能」 ＞ 「Apps Script」</strong> をクリックします。</li>
                 <li>新しい画面（プログラムの画面）が開いたら、右上の青い <strong>「デプロイ」</strong> ボタンを押し、<strong>「新しいデプロイ」</strong> を選びます。</li>
-                <div class="image-placeholder">[ここに「デプロイ＞新しいデプロイ」のスクショ画像を入れると親切です]</div>
+                
 
                 <li>設定画面が出たら、以下の通りに設定してください：
                     <ul>
@@ -225,43 +225,18 @@
 
             <ol start="5">
                 <li>完了画面に表示される <strong>ウェブアプリのURL</strong> の下にある「コピー」ボタンを押します。</li>
-                <div class="image-placeholder">[ここに「URLをコピー」の完了画面のスクショ画像を入れると親切です]</div>
+                
                 <p>※コピーしたURL（<code>https://script.google.com/macros/s/.../exec</code>）は、あとで使うのでメモ帳などに貼り付けておいてください。</p>
             </ol>
+            <p
+                style="color: var(--accent-green); font-weight: bold; font-size: 1.1rem; text-align: center; margin-top: 30px;">
+                🎉 お疲れ様でした！これで裏側のデータベース準備はすべて完了です！
+            </p>
         </div>
 
         <!-- STEP 3 -->
         <div class="step-card">
             <div class="step-number">3</div>
-            <h2>自動投稿タイマー（トリガー）をセットする</h2>
-            <p>最後に、スプレッドシートに保存されたポストが「自動的にThreadsに投稿される」ように、タイマーをセットします。</p>
-
-            <ol>
-                <li>先ほどデプロイした画面（Apps Script）のまま、左側のメニューから <strong>時計のマーク（トリガー）</strong> をクリックします。</li>
-                <li>右下の青い <strong>「＋ トリガーを追加」</strong> をクリックします。</li>
-                <div class="image-placeholder">[ここに「トリガーを追加」ボタンのスクショ画像を入れると親切です]</div>
-
-                <li>以下の通りに設定して「保存」を押します：
-                    <ul>
-                        <li>実行する関数を選択: <strong>checkScheduledPosts</strong></li>
-                        <li>実行するデプロイを選択: <strong>Head</strong></li>
-                        <li>イベントのソースを選択: <strong>時間主導型</strong></li>
-                        <li>時間ベースのトリガーのタイプを選択: <strong>分ベースのタイマー</strong></li>
-                        <li>時間の間隔を選択（分）: <strong>10分おき</strong></li>
-                    </ul>
-                </li>
-                <div class="image-placeholder">[ここに上記5項目の設定画面のスクショ画像を入れると親切です]</div>
-            </ol>
-
-            <p
-                style="color: var(--accent-green); font-weight: bold; font-size: 1.1rem; text-align: center; margin-top: 30px;">
-                🎉 お疲れ様でした！これで裏側の準備はすべて完了です！
-            </p>
-        </div>
-
-        <!-- STEP 4 -->
-        <div class="step-card">
-            <div class="step-number">4</div>
             <h2>ツールを使ってみよう！</h2>
             <p>いよいよツールへログインします！</p>
 
@@ -275,7 +250,8 @@
                 <li>Gemini API キーと基本プロフィールを入力して、「AIでポストを生成する」を押せば完了です！</li>
             </ol>
 
-            <p>生成されたカードはスワイプで仕分けでき、右に「保存（Keep）」すると、先ほど作ったあなたのスプレッドシートに自動的に送信・保存されます！</p>
+            <p>生成されたカードはスワイプで仕分けでき、右に「保存（Keep）」すると、先ほど作ったあなたのスプレッドシートに自動的に送信・保存（ストック）されます！<br>
+        ※保存されたポストはスプレッドシートに溜まっていくので、Threadsアプリを開いてそこからコピペして投稿してください。</p>
         </div>
 
     </div>
