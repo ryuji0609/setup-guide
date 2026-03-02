@@ -906,12 +906,20 @@
             const editableContent = el.querySelector('.card-content');
 
             const onStart = (e) => {
-                // 1. ボタンや入力エリア内での操作をチェック
+                // 1. ボタン等での操作をチェック
                 if (e.target.closest('.action-btn') ||
-                    e.target.closest('.card-scheduler') ||
-                    e.target === editableContent ||
-                    document.activeElement === editableContent) {
+                    e.target.closest('.card-scheduler')) {
                     return;
+                }
+
+                // テキスト部分を直接触っている場合はスワイプさせない（テキスト選択やスクロールのため）
+                if (e.target === editableContent || editableContent.contains(e.target)) {
+                    return;
+                }
+
+                // カードの余白を触った場合は、テキスト編集のフォーカスを外してスワイプ開始を許可する
+                if (document.activeElement === editableContent) {
+                    editableContent.blur();
                 }
 
                 const touch = e.type.includes('mouse') ? e : e.touches[0];
@@ -927,7 +935,7 @@
 
                 // 2. テキスト編集中（フォーカス中）はスワイプを完全に無効化
                 if (document.activeElement === editableContent) {
-                    isDragging = false;
+                    // Chrome等でうまくblurが効かなかった時のためのフェイルセーフ
                     return;
                 }
 
